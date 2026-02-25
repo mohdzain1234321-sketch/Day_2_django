@@ -1,0 +1,136 @@
+{% extends "tasks/base.html" %}
+
+{% block title %}TaskFlow — Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Bar -->
+<div class="stats-bar">
+    <div class="stat-card">
+        <span class="stat-number">{{ total }}</span>
+        <span class="stat-label">Total</span>
+    </div>
+    <div class="stat-card stat-pending">
+        <span class="stat-number">{{ pending }}</span>
+        <span class="stat-label">Pending</span>
+    </div>
+    <div class="stat-card stat-completed">
+        <span class="stat-number">{{ completed }}</span>
+        <span class="stat-label">Completed</span>
+    </div>
+    <div class="stat-card stat-overdue">
+        <span class="stat-number">{{ overdue_count }}</span>
+        <span class="stat-label">Overdue</span>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+    <div class="filters">
+        <a href="{% url 'task_list' %}"
+            class="filter-btn {% if not filter_status and not filter_priority %}active{% endif %}">All</a>
+        <a href="?status=todo" class="filter-btn {% if filter_status == 'todo' %}active{% endif %}">To Do</a>
+        <a href="?status=in_progress" class="filter-btn {% if filter_status == 'in_progress' %}active{% endif %}">In
+            Progress</a>
+        <a href="?status=done" class="filter-btn {% if filter_status == 'done' %}active{% endif %}">Done</a>
+    </div>
+    <a href="{% url 'task_create' %}" class="btn btn-primary" id="add-task-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Task
+    </a>
+</div>
+
+<!-- Task List -->
+<div class="task-list">
+    {% if tasks %}
+    {% for task in tasks %}
+    <div class="task-card {% if task.completed %}task-completed{% endif %} {% if task.is_overdue %}task-overdue{% endif %}"
+        id="task-{{ task.pk }}">
+        <div class="task-left">
+            <form method="post" action="{% url 'task_toggle_complete' task.pk %}" class="toggle-form">
+                {% csrf_token %}
+                <button type="submit" class="toggle-btn {% if task.completed %}checked{% endif %}"
+                    aria-label="Toggle complete">
+                    {% if task.completed %}
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                    {% else %}
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round">
+                        <rect x="3" y="3" width="18" height="18" rx="3" />
+                    </svg>
+                    {% endif %}
+                </button>
+            </form>
+
+            <div class="task-info">
+                <h3 class="task-title">{{ task.title }}</h3>
+                {% if task.description %}
+                <p class="task-desc">{{ task.description|truncatewords:20 }}</p>
+                {% endif %}
+                <div class="task-meta">
+                    <span class="badge priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                    <span class="badge status-{{ task.status }}">{{ task.get_status_display }}</span>
+                    {% if task.due_date %}
+                    <span class="badge due-date {% if task.is_overdue %}overdue{% endif %}">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        {{ task.due_date|date:"M d, Y" }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="task-actions">
+            <a href="{% url 'task_update' task.pk %}" class="action-btn edit-btn" title="Edit">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+            </a>
+            <a href="{% url 'task_delete' task.pk %}" class="action-btn delete-btn" title="Delete">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <path d="M9 11l3 3L22 4" />
+            </svg>
+        </div>
+        <h3>No tasks yet</h3>
+        <p>Create your first task to get started!</p>
+        <a href="{% url 'task_create' %}" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create Task
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
